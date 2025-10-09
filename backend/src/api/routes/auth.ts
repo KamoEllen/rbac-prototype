@@ -1,10 +1,3 @@
-/**
- * AUTHENTICATION ROUTES
- * 
- * Handles user registration, passwordless authentication via email,
- * and session management.
- */
-
 import { Elysia, t } from "elysia";
 import { db } from "../../infrastructure/db/client";
 import {
@@ -23,15 +16,11 @@ import { eq, and, gt } from "drizzle-orm";
 
 export const authRoutes = new Elysia({ prefix: "/auth" })
 
-  // ============================================
-  // REGISTER NEW USER
-  // ============================================
   .post(
     "/register",
     async ({ body, set }: any) => {
       const { email, name, tenantName, teamName } = body;
       
-      // Check if user already exists
       const existingUser = await db
         .select()
         .from(users)
@@ -43,7 +32,6 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         throw new Error("User with this email already exists");
       }
       
-      // Create tenant
       const [tenant] = await db
         .insert(tenants)
         .values({ name: tenantName })
@@ -51,7 +39,6 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         
       if (!tenant) throw new Error("Failed to create tenant");
 
-      // Create team
       const [team] = await db
         .insert(teams)
         .values({ name: teamName, tenantId: tenant.id })
@@ -59,7 +46,6 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         
       if (!team) throw new Error("Failed to create team");
 
-      // Create user (unverified)
       const [user] = await db
         .insert(users)
         .values({
@@ -88,15 +74,11 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
     }
   )
 
-  // ============================================
-  // SEND PASSWORDLESS AUTHENTICATION LINK
-  // ============================================
   .post(
     "/login",
     async ({ body, set }: any) => {
       const { email } = body;
       
-      // Check user exists
       const [user] = await db
         .select()
         .from(users)
@@ -108,22 +90,18 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         throw new Error("User not found");
       }
       
-      // Check if user is verified
       if (!user.verified) {
         set.status = 403;
         throw new Error("Account not verified. Please contact your administrator.");
       }
       
-      // Generate passwordless authentication token
       const token = await generatePasswordlessLink(email);
-      
-      // In development: log the authentication link
+    
       const authLink = `http://localhost:5173/auth/verify?token=${token}`;
       console.log(`\n🔗 Passwordless Authentication Link: ${authLink}\n`);
       
       return {
         message: "Authentication link sent to your email",
-        // In development mode, return the link for easy testing
         ...(process.env.NODE_ENV !== "production" && { 
           authLink,
           token 
@@ -134,16 +112,11 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
       body: t.Object({ email: t.String({ format: "email" }) }),
     }
   )
-
-  // ============================================
-  // VERIFY PASSWORDLESS TOKEN & CREATE SESSION
-  // ============================================
   .post(
     "/verify",
     async ({ body, cookie, set }: any) => {
       const { token } = body;
       
-      // Verify passwordless authentication token
       const email = await verifyPasswordlessLink(token);
       
       if (!email) {
@@ -151,7 +124,6 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         throw new Error("Invalid or expired authentication token");
       }
       
-      // Get user
       const [user] = await db
         .select()
         .from(users)
@@ -163,16 +135,13 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
         throw new Error("User not found");
       }
       
-      // Double-check verification status
       if (!user.verified) {
         set.status = 403;
         throw new Error("Account not verified");
       }
       
-      // Create session
       const sessionToken = await createSession(user.id);
 
-      // Set HTTP-only cookie
       cookie.session.value = sessionToken;
       cookie.session.httpOnly = true;
       cookie.session.secure = process.env.NODE_ENV === "production";
@@ -180,7 +149,6 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
       cookie.session.maxAge = 86400; // 24 hours
       cookie.session.path = "/";
 
-      // Get user permissions
       const permissions = await getUserPermissions(user.id, user.teamId);
       
       return { 
@@ -195,9 +163,6 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
     }
   )
 
-  // ============================================
-  // GET CURRENT USER (Protected)
-  // ============================================
   .get("/me", async ({ cookie, set }: any) => {
     const sessionToken = cookie.session?.value;
     
@@ -206,7 +171,6 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
       throw new Error("Unauthorized: No session");
     }
 
-    // Validate session
     const result = await db
       .select({ user: users })
       .from(sessions)
@@ -230,17 +194,12 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
     return { user, permissions };
   })
 
-  // ============================================
-  // LOGOUT (Protected)
-  // ============================================
   .post("/logout", async ({ cookie }: any) => {
     if (cookie.session?.value) {
-      // Delete session from database
       await db
         .delete(sessions)
         .where(eq(sessions.token, cookie.session.value));
       
-      // Clear cookie
       cookie.session.remove();
     }
     
