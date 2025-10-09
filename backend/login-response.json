@@ -1,0 +1,1 @@
+{"message":"Passwordless link sent! Check the server console for the link (in development mode).","passwordlessLinks":"http://localhost:5173/auth/verify?token=-Rk97N64iJVz49SF1p0lHhkx6Q8jIbl1","token":"-Rk97N64iJVz49SF1p0lHhkx6Q8jIbl1"}

@@ -1,0 +1,64 @@
+#!/bin/bash
+
+echo "🔍 Debugging Authentication Flow"
+echo "================================"
+echo ""
+
+# Clean up
+rm -f cookies.txt
+
+# 1. Login
+echo "1️⃣ Requesting passwordless link..."
+LOGIN_RESPONSE=$(curl -s -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@acme.com"}')
+
+echo "Login Response:"
+echo $LOGIN_RESPONSE | jq '.'
+echo ""
+
+TOKEN=$(echo $LOGIN_RESPONSE | jq -r '.token')
+echo "Extracted Token: $TOKEN"
+echo ""
+
+# 2. Verify with verbose output
+echo "2️⃣ Verifying token (verbose)..."
+curl -v -X POST http://localhost:3000/auth/verify \
+  -H "Content-Type: application/json" \
+  -d "{\"token\": \"$TOKEN\"}" \
+  -c cookies.txt 2>&1 | tee verify-output.txt
+
+echo ""
+echo "3️⃣ Cookie file contents:"
+cat cookies.txt
+echo ""
+
+# 3. Extract session from cookie file
+SESSION_TOKEN=$(grep -oP 'session\s+\K[^\s]+' cookies.txt 2>/dev/null || echo "")
+echo "Session token from file: $SESSION_TOKEN"
+echo ""
+
+# 4. Try /auth/me with cookie
+echo "4️⃣ Testing /auth/me with cookie..."
+echo "Request:"
+curl -v http://localhost:3000/auth/me -b cookies.txt 2>&1 | grep -E "(> |< |Cookie:)"
+echo ""
+echo "Response:"
+curl -s http://localhost:3000/auth/me -b cookies.txt | jq '.'
+echo ""
+
+# 5. Try with Authorization header
+if [ ! -z "$SESSION_TOKEN" ]; then
+  echo "5️⃣ Testing /auth/me with Authorization header..."
+  curl -s http://localhost:3000/auth/me \
+    -H "Authorization: Bearer $SESSION_TOKEN" | jq '.'
+  echo ""
+fi
+
+# 6. Check database
+echo "6️⃣ Checking sessions in database..."
+echo "Run this in psql:"
+echo "  SELECT token, user_id, expires_at FROM sessions ORDER BY created_at DESC LIMIT 5;"
+echo ""
+
+echo "✅ Debug complete. Check verify-output.txt for full details."
