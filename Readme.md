@@ -1,6 +1,7 @@
 # SaaS RBAC Prototype - Technical Documentation
 
 ## Table of Contents
+
 0. [Quick Start Guide](#quick-start-guide)
 1. [Project Overview](#project-overview)
 2. [Architecture & Design Decisions](#architecture--design-decisions)
@@ -18,55 +19,76 @@
 14. [Deployment Considerations](#deployment-considerations)
 
 ---
+
 ## Quick Start Guide
+
+Get the application running in 5 minutes.
 
 ### Prerequisites
 
-Before you begin, install:
+Install these tools before starting:
 
-1. **PostgreSQL** - [Download here](https://www.postgresql.org/download/)
-2. **Bun** - [Installation guide](https://bun.sh/)
-3. **Node.js & npm** - [Download here](https://nodejs.org/)
+1. **PostgreSQL** - [Download](https://www.postgresql.org/download/)
+2. **Bun** - [Install](https://bun.sh/)
+3. **Node.js & npm** - [Download](https://nodejs.org/)
 
-### 1. Clone & Setup Database
+---
+
+### Step 1: Clone Repository & Create Database
+
 ```bash
 # Clone the repository
 git clone https://github.com/KamoEllen/rbac-prototype
 cd saas-rbac-prototype
 
-# Start PostgreSQL (if not running)
-# Windows: Already runs as service after install
-# macOS: brew services start postgresql
-# Linux: sudo systemctl start postgresql
-
 # Create database
 psql -U postgres -c "CREATE DATABASE saas_rbac;"
-# Navigate to backend
+```
+
+**Note:** PostgreSQL should be running. On Windows, it runs automatically after installation.
+
+---
+
+### Step 2: Setup Backend
+
+```bash
+# Navigate to backend folder
 cd backend
 
-# Create environment file
+# Create environment configuration
 cat > .env << EOF
 DATABASE_URL=postgresql://postgres:your_password@localhost:5432/saas_rbac
 PORT=3000
 NODE_ENV=development
 EOF
+```
 
-# Replace 'your_password' with your PostgreSQL password
+**Important:** Replace `your_password` with your actual PostgreSQL password.
 
+```bash
 # Install dependencies
 bun install
 
-# Setup database schema
+# Setup database tables
 bun run db:push
 
-# Seed test data
+# Load test data
 bun run db:seed
 
 # Start backend server
 bun run dev
-Backend will run at: http://localhost:3000
+```
 
-# Navigate to frontend (from project root)
+**Backend is now running at:** http://localhost:3000
+
+---
+
+### Step 3: Setup Frontend
+
+Open a **new terminal window** and run:
+
+```bash
+# Navigate to frontend folder (from project root)
 cd frontend
 
 # Install dependencies
@@ -74,35 +96,94 @@ npm install
 
 # Start frontend server
 npm run dev
-Frontend will run at: http://localhost:5173
+```
 
-### 4. Test the Application
+**Frontend is now running at:** http://localhost:5173
 
-Open http://localhost:5173 in your browser and login with these test accounts:
+---
 
-| Email | Password | Access Level |
-|-------|----------|--------------|
-| admin@acme.com | (passwordless) | Full access to everything |
-| vault@acme.com | (passwordless) | Vault only (create, read, update) |
-| viewer@acme.com | (passwordless) | Finance read-only |
-| manager@acme.com | (passwordless) | Finance & Reporting full access |
-| readonly@acme.com | (passwordless) | Vault read-only |
-| pending@acme.com | (passwordless) | Cannot login (unverified) |
+### Step 4: Test the Application
 
-**How to login:**
-1. Enter email on login page
-2. Click "Send Authentication Link"
-3. Check backend terminal for the verification link
-4. Click "Verify Now" or copy the token
-5. You'll be logged in 
+Open http://localhost:5173 in your browser.
 
-### 5.Need to reset database?
+#### Test Accounts
+
+| Email | Access Level |
+|-------|--------------|
+| **admin@acme.com** | Full access to all modules |
+| **vault@acme.com** | Vault only (create, read, update - no delete) |
+| **viewer@acme.com** | Finance read-only |
+| **manager@acme.com** | Finance & Reporting (full access) |
+| **readonly@acme.com** | Vault read-only |
+| **pending@acme.com** | Cannot login (unverified user) |
+
+#### How to Login (Passwordless Authentication)
+
+1. Enter email address on login page
+2. Click **"Send Authentication Link"**
+3. Check **backend terminal** for verification link
+4. Click **"Verify Now"** button or copy the token
+5. You'll be logged in
+
+---
+
+### Step 5: Reset Database (Optional)
+
+If you need to start fresh:
+
+```bash
 cd backend
+
+# Drop and recreate database
 psql -U postgres -c "DROP DATABASE saas_rbac;"
 psql -U postgres -c "CREATE DATABASE saas_rbac;"
+
+# Reapply schema and data
 bun run db:push
 bun run db:seed
+```
 
+---
+
+### Step 6: View Database (Optional)
+
+Inspect database contents using Drizzle Studio:
+
+```bash
+cd backend
+bun run db:studio
+```
+
+Opens at: https://local.drizzle.studio
+
+---
+
+### Troubleshooting
+
+**Database connection error?**
+```bash
+# Verify PostgreSQL is running
+psql -U postgres -c "SELECT 1;"
+
+# Check password in backend/.env matches your PostgreSQL password
+```
+
+**Port already in use?**
+```bash
+# Backend (port 3000): Change PORT in backend/.env
+# Frontend (port 5173): Stop with Ctrl+C and restart
+```
+
+**Permission errors on Windows?**
+```bash
+# Use Git Bash or PowerShell as Administrator
+# Or manually create .env file with these contents:
+DATABASE_URL=postgresql://postgres:your_password@localhost:5432/saas_rbac
+PORT=3000
+NODE_ENV=development
+```
+
+---
 
 ## Project Overview
 
