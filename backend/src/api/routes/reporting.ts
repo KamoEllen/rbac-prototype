@@ -3,30 +3,18 @@ import { db } from "../../infrastructure/db/client";
 import { reports } from "../../infrastructure/db/schema";
 import { eq } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
-import {
-  checkPermission,
-  verifyTeamOwnership,
-} from "../../core/permissions/checker";
+import { requirePermission } from "../middleware/permission";
+import { verifyTeamOwnership } from "../../core/permissions/checker";
 
 export const reportingRoutes = new Elysia({ prefix: "/reporting" })
   .use(authMiddleware)
 
+  // GET / - Read permission
+  .use(requirePermission("reporting", "read"))
   .get(
     "/",
-    async (context: any) => {
-      const { query, currentUser } = context;
-      const { teamId } = query;
-
-      const canRead = await checkPermission(
-        currentUser.id,
-        teamId,
-        "reporting",
-        "read"
-      );
-
-      if (!canRead) {
-        throw new Error("Forbidden: Missing reporting:read permission");
-      }
+    async ({ currentUser, teamId }: any) => {
+      // teamId and permission check done by middleware
 
       const allReports = await db
         .select()
@@ -41,23 +29,12 @@ export const reportingRoutes = new Elysia({ prefix: "/reporting" })
       }),
     }
   )
+
+  // GET /:reportId - Read permission
   .get(
     "/:reportId",
-    async (context: any) => {
-      const { params, query, currentUser } = context;
+    async ({ params, currentUser, teamId }: any) => {
       const { reportId } = params;
-      const { teamId } = query;
-
-      const canRead = await checkPermission(
-        currentUser.id,
-        teamId,
-        "reporting",
-        "read"
-      );
-
-      if (!canRead) {
-        throw new Error("Forbidden: Missing reporting:read permission");
-      }
 
       const [report] = await db
         .select()
@@ -79,22 +56,12 @@ export const reportingRoutes = new Elysia({ prefix: "/reporting" })
     }
   )
 
+  // POST / - Create permission
+  .use(requirePermission("reporting", "create"))
   .post(
     "/",
-    async (context: any) => {
-      const { body, currentUser } = context;
-      const { title, content, teamId } = body;
-
-      const canCreate = await checkPermission(
-        currentUser.id,
-        teamId,
-        "reporting",
-        "create"
-      );
-
-      if (!canCreate) {
-        throw new Error("Forbidden: Missing reporting:create permission");
-      }
+    async ({ body, currentUser, teamId }: any) => {
+      const { title, content } = body;
 
       const [report] = await db
         .insert(reports)
@@ -117,23 +84,13 @@ export const reportingRoutes = new Elysia({ prefix: "/reporting" })
     }
   )
 
+  // PUT /:reportId - Update permission
+  .use(requirePermission("reporting", "update"))
   .put(
     "/:reportId",
-    async (context: any) => {
-      const { params, body, currentUser } = context;
+    async ({ params, body, currentUser, teamId }: any) => {
       const { reportId } = params;
-      const { title, content, teamId } = body;
-
-      const canUpdate = await checkPermission(
-        currentUser.id,
-        teamId,
-        "reporting",
-        "update"
-      );
-
-      if (!canUpdate) {
-        throw new Error("Forbidden: Missing reporting:update permission");
-      }
+      const { title, content } = body;
 
       const [existing] = await db
         .select()
@@ -169,23 +126,12 @@ export const reportingRoutes = new Elysia({ prefix: "/reporting" })
     }
   )
 
+  // DELETE /:reportId - Delete permission
+  .use(requirePermission("reporting", "delete"))
   .delete(
     "/:reportId",
-    async (context: any) => {
-      const { params, query, currentUser } = context;
+    async ({ params, currentUser, teamId }: any) => {
       const { reportId } = params;
-      const { teamId } = query;
-
-      const canDelete = await checkPermission(
-        currentUser.id,
-        teamId,
-        "reporting",
-        "delete"
-      );
-
-      if (!canDelete) {
-        throw new Error("Forbidden: Missing reporting:delete permission");
-      }
 
       const [existing] = await db
         .select()

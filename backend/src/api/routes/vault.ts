@@ -3,29 +3,19 @@ import { db } from "../../infrastructure/db/client";
 import { vaultSecrets } from "../../infrastructure/db/schema";
 import { eq } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
-import {
-  checkPermission,
-  verifyTeamOwnership,
-} from "../../core/permissions/checker";
+import { requirePermission } from "../middleware/permission";
+import { verifyTeamOwnership } from "../../core/permissions/checker";
 
 export const vaultRoutes = new Elysia({ prefix: "/vault" })
   .use(authMiddleware)
 
+  // GET / - Read permission required
+  .use(requirePermission("vault", "read"))
   .get(
     "/",
-    async ({ query, currentUser }: any) => {
-      const { teamId } = query;
-
-      const canRead = await checkPermission(
-        currentUser.id,
-        teamId,
-        "vault",
-        "read"
-      );
-
-      if (!canRead) {
-        throw new Error("Forbidden: Missing vault:read permission");
-      }
+    async ({ currentUser, teamId }: any) => {
+      // teamId injected by requirePermission middleware
+      // Permission check already done
 
       const secrets = await db
         .select()
@@ -41,22 +31,12 @@ export const vaultRoutes = new Elysia({ prefix: "/vault" })
     }
   )
 
+  // GET /:id - Read permission required
   .get(
     "/:id",
-    async ({ params, query, currentUser }: any) => {
+    async ({ params, currentUser, teamId }: any) => {
+      // teamId injected by middleware, permission already checked
       const { id } = params;
-      const { teamId } = query;
-
-      const canRead = await checkPermission(
-        currentUser.id,
-        teamId,
-        "vault",
-        "read"
-      );
-
-      if (!canRead) {
-        throw new Error("Forbidden: Missing vault:read permission");
-      }
 
       const [secret] = await db
         .select()
@@ -77,21 +57,14 @@ export const vaultRoutes = new Elysia({ prefix: "/vault" })
       query: t.Object({ teamId: t.String() }),
     }
   )
+
+  // POST / - Create permission required
+  .use(requirePermission("vault", "create"))
   .post(
     "/",
-    async ({ body, currentUser }: any) => {
-      const { name, value, teamId } = body;
-
-      const canCreate = await checkPermission(
-        currentUser.id,
-        teamId,
-        "vault",
-        "create"
-      );
-
-      if (!canCreate) {
-        throw new Error("Forbidden: Missing vault:create permission");
-      }
+    async ({ body, currentUser, teamId }: any) => {
+      // teamId injected by middleware, permission already checked
+      const { name, value } = body;
 
       const [secret] = await db
         .insert(vaultSecrets)
@@ -114,22 +87,14 @@ export const vaultRoutes = new Elysia({ prefix: "/vault" })
     }
   )
 
+  // PUT /:id - Update permission required
+  .use(requirePermission("vault", "update"))
   .put(
     "/:id",
-    async ({ params, body, currentUser }: any) => {
+    async ({ params, body, currentUser, teamId }: any) => {
+      // teamId injected by middleware, permission already checked
       const { id } = params;
-      const { name, value, teamId } = body;
-
-      const canUpdate = await checkPermission(
-        currentUser.id,
-        teamId,
-        "vault",
-        "update"
-      );
-
-      if (!canUpdate) {
-        throw new Error("Forbidden: Missing vault:update permission");
-      }
+      const { name, value } = body;
 
       const [existing] = await db
         .select()
@@ -165,22 +130,13 @@ export const vaultRoutes = new Elysia({ prefix: "/vault" })
     }
   )
 
+  // DELETE /:id - Delete permission required
+  .use(requirePermission("vault", "delete"))
   .delete(
     "/:id",
-    async ({ params, query, currentUser }: any) => {
+    async ({ params, currentUser, teamId }: any) => {
+      // teamId injected by middleware, permission already checked
       const { id } = params;
-      const { teamId } = query;
-
-      const canDelete = await checkPermission(
-        currentUser.id,
-        teamId,
-        "vault",
-        "delete"
-      );
-
-      if (!canDelete) {
-        throw new Error("Forbidden: Missing vault:delete permission");
-      }
 
       const [existing] = await db
         .select()

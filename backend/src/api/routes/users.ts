@@ -4,31 +4,19 @@ import {
   users,
   userGroups,
   groups,
-  sessions,
 } from "../../infrastructure/db/schema";
-import { eq, and, gt } from "drizzle-orm";
-
-async function getCurrentUser(cookie: any) {
-  const sessionToken = cookie.session?.value;
-  if (!sessionToken) throw new Error("Unauthorized");
-  const result = await db
-    .select({ user: users })
-    .from(sessions)
-    .innerJoin(users, eq(sessions.userId, users.id))
-    .where(
-      and(eq(sessions.token, sessionToken), gt(sessions.expiresAt, new Date()))
-    )
-    .limit(1);
-  if (!result[0]) throw new Error("Invalid session");
-  return result[0].user;
-}
+import { eq, and } from "drizzle-orm";
+import { authMiddleware } from "../middleware/auth";
 
 export const userRoutes = new Elysia({ prefix: "/users" })
+  .use(authMiddleware) // Apply to all routes
+  
   .get(
     "/",
-    async ({ query, cookie }: any) => {
-      const currentUser = await getCurrentUser(cookie);
+    async ({ query, currentUser }: any) => {
+      // currentUser injected by middleware - no need for getCurrentUser
       const { teamId } = query;
+      
       const allUsers = await db
         .select({
           id: users.id,
@@ -41,6 +29,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         })
         .from(users)
         .where(eq(users.tenantId, currentUser.tenantId));
+        
       return teamId ? allUsers.filter((u) => u.teamId === teamId) : allUsers;
     },
     { query: t.Object({ teamId: t.Optional(t.String()) }) }
@@ -48,8 +37,9 @@ export const userRoutes = new Elysia({ prefix: "/users" })
 
   .get(
     "/:userId",
-    async ({ params, cookie, set }: any) => {
-      const currentUser = await getCurrentUser(cookie);
+    async ({ params, currentUser, set }: any) => {
+      // currentUser from middleware
+      
       const [user] = await db
         .select()
         .from(users)
@@ -60,10 +50,12 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           )
         )
         .limit(1);
+        
       if (!user) {
         set.status = 404;
         throw new Error("User not found");
       }
+      
       const userGroupsData = await db
         .select({
           groupId: groups.id,
@@ -73,6 +65,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
         .from(userGroups)
         .innerJoin(groups, eq(userGroups.groupId, groups.id))
         .where(eq(userGroups.userId, params.userId));
+        
       return { ...user, groups: userGroupsData };
     },
     { params: t.Object({ userId: t.String() }) }
@@ -80,8 +73,9 @@ export const userRoutes = new Elysia({ prefix: "/users" })
 
   .put(
     "/:userId",
-    async ({ params, body, cookie, set }: any) => {
-      const currentUser = await getCurrentUser(cookie);
+    async ({ params, body, currentUser, set }: any) => {
+      // currentUser from middleware
+      
       const [existingUser] = await db
         .select()
         .from(users)
@@ -92,15 +86,18 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           )
         )
         .limit(1);
+        
       if (!existingUser) {
         set.status = 404;
         throw new Error("User not found");
       }
+      
       const [updatedUser] = await db
         .update(users)
         .set({ name: body.name, email: body.email })
         .where(eq(users.id, params.userId))
         .returning();
+        
       return { message: "User updated successfully", user: updatedUser };
     },
     {
@@ -114,8 +111,9 @@ export const userRoutes = new Elysia({ prefix: "/users" })
 
   .post(
     "/:userId/groups/:groupId",
-    async ({ params, cookie, set }: any) => {
-      const currentUser = await getCurrentUser(cookie);
+    async ({ params, currentUser, set }: any) => {
+      // currentUser from middleware
+      
       const [user] = await db
         .select()
         .from(users)
@@ -126,19 +124,23 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           )
         )
         .limit(1);
+        
       if (!user) {
         set.status = 404;
         throw new Error("User not found");
       }
+      
       const [group] = await db
         .select()
         .from(groups)
         .where(eq(groups.id, params.groupId))
         .limit(1);
+        
       if (!group) {
         set.status = 404;
         throw new Error("Group not found");
       }
+      
       const existing = await db
         .select()
         .from(userGroups)
@@ -149,10 +151,15 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           )
         )
         .limit(1);
-      if (existing[0]) return { message: "User already in this group" };
+        
+      if (existing[0]) {
+        return { message: "User already in this group" };
+      }
+      
       await db
         .insert(userGroups)
         .values({ userId: params.userId, groupId: params.groupId });
+        
       return { message: "User added to group successfully" };
     },
     { params: t.Object({ userId: t.String(), groupId: t.String() }) }
@@ -160,8 +167,9 @@ export const userRoutes = new Elysia({ prefix: "/users" })
 
   .delete(
     "/:userId/groups/:groupId",
-    async ({ params, cookie, set }: any) => {
-      const currentUser = await getCurrentUser(cookie);
+    async ({ params, currentUser, set }: any) => {
+      // currentUser from middleware
+      
       const [user] = await db
         .select()
         .from(users)
@@ -172,10 +180,12 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           )
         )
         .limit(1);
+        
       if (!user) {
         set.status = 404;
         throw new Error("User not found");
       }
+      
       await db
         .delete(userGroups)
         .where(
@@ -184,6 +194,7 @@ export const userRoutes = new Elysia({ prefix: "/users" })
             eq(userGroups.groupId, params.groupId)
           )
         );
+        
       return { message: "User removed from group successfully" };
     },
     { params: t.Object({ userId: t.String(), groupId: t.String() }) }
@@ -191,12 +202,14 @@ export const userRoutes = new Elysia({ prefix: "/users" })
 
   .delete(
     "/:userId",
-    async ({ params, cookie, set }: any) => {
-      const currentUser = await getCurrentUser(cookie);
+    async ({ params, currentUser, set }: any) => {
+      // currentUser from middleware
+      
       if (params.userId === currentUser.id) {
         set.status = 400;
         throw new Error("Cannot delete your own account");
       }
+      
       const [user] = await db
         .select()
         .from(users)
@@ -207,11 +220,14 @@ export const userRoutes = new Elysia({ prefix: "/users" })
           )
         )
         .limit(1);
+        
       if (!user) {
         set.status = 404;
         throw new Error("User not found");
       }
+      
       await db.delete(users).where(eq(users.id, params.userId));
+      
       return { message: "User deleted successfully" };
     },
     { params: t.Object({ userId: t.String() }) }

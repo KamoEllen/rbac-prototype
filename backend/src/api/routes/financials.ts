@@ -1,31 +1,20 @@
 import { Elysia, t } from "elysia";
 import { db } from "../../infrastructure/db/client";
 import { financialTransactions } from "../../infrastructure/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
-import {
-  checkPermission,
-  verifyTeamOwnership,
-} from "../../core/permissions/checker";
+import { requirePermission } from "../middleware/permission";
+import { verifyTeamOwnership } from "../../core/permissions/checker";
 
 export const financialsRoutes = new Elysia({ prefix: "/financials" })
   .use(authMiddleware)
+
+  // GET / - Read permission
+  .use(requirePermission("financials", "read"))
   .get(
     "/",
-    async (context: any) => {
-      const { query, currentUser } = context;
-      const { teamId } = query;
-
-      const canRead = await checkPermission(
-        currentUser.id,
-        teamId,
-        "financials",
-        "read"
-      );
-
-      if (!canRead) {
-        throw new Error("Forbidden: Missing financials:read permission");
-      }
+    async ({ currentUser, teamId }: any) => {
+      // teamId and permission check done by middleware
 
       const transactions = await db
         .select()
@@ -40,23 +29,12 @@ export const financialsRoutes = new Elysia({ prefix: "/financials" })
       }),
     }
   )
+
+  // GET /:transactionId - Read permission
   .get(
     "/:transactionId",
-    async (context: any) => {
-      const { params, query, currentUser } = context;
+    async ({ params, currentUser, teamId }: any) => {
       const { transactionId } = params;
-      const { teamId } = query;
-
-      const canRead = await checkPermission(
-        currentUser.id,
-        teamId,
-        "financials",
-        "read"
-      );
-
-      if (!canRead) {
-        throw new Error("Forbidden: Missing financials:read permission");
-      }
 
       const [transaction] = await db
         .select()
@@ -77,22 +55,13 @@ export const financialsRoutes = new Elysia({ prefix: "/financials" })
       query: t.Object({ teamId: t.String() }),
     }
   )
+
+  // POST / - Create permission
+  .use(requirePermission("financials", "create"))
   .post(
     "/",
-    async (context: any) => {
-      const { body, currentUser } = context;
-      const { amount, description, teamId } = body;
-
-      const canCreate = await checkPermission(
-        currentUser.id,
-        teamId,
-        "financials",
-        "create"
-      );
-
-      if (!canCreate) {
-        throw new Error("Forbidden: Missing financials:create permission");
-      }
+    async ({ body, currentUser, teamId }: any) => {
+      const { amount, description } = body;
 
       const [transaction] = await db
         .insert(financialTransactions)
@@ -114,23 +83,14 @@ export const financialsRoutes = new Elysia({ prefix: "/financials" })
       }),
     }
   )
+
+  // PUT /:transactionId - Update permission
+  .use(requirePermission("financials", "update"))
   .put(
     "/:transactionId",
-    async (context: any) => {
-      const { params, body, currentUser } = context;
+    async ({ params, body, currentUser, teamId }: any) => {
       const { transactionId } = params;
-      const { amount, description, teamId } = body;
-
-      const canUpdate = await checkPermission(
-        currentUser.id,
-        teamId,
-        "financials",
-        "update"
-      );
-
-      if (!canUpdate) {
-        throw new Error("Forbidden: Missing financials:update permission");
-      }
+      const { amount, description } = body;
 
       const [existing] = await db
         .select()
@@ -166,23 +126,12 @@ export const financialsRoutes = new Elysia({ prefix: "/financials" })
     }
   )
 
+  // DELETE /:transactionId - Delete permission
+  .use(requirePermission("financials", "delete"))
   .delete(
     "/:transactionId",
-    async (context: any) => {
-      const { params, query, currentUser } = context;
+    async ({ params, currentUser, teamId }: any) => {
       const { transactionId } = params;
-      const { teamId } = query;
-
-      const canDelete = await checkPermission(
-        currentUser.id,
-        teamId,
-        "financials",
-        "delete"
-      );
-
-      if (!canDelete) {
-        throw new Error("Forbidden: Missing financials:delete permission");
-      }
 
       const [existing] = await db
         .select()
