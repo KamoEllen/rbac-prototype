@@ -1,12 +1,4 @@
-
-![RBAC System Diagram](https://github.com/KamoEllen/rbac-prototype/blob/main/diagram.png)
-
-**Owner:** KamoEllen
-**Category:** Backend
-**Repo:** [RBAC Prototype](https://github.com/KamoEllen/rbac-prototype)
-**Status:** Completed / Update required (email integration, tenant creation updates)
-
----
+**Status:**  Update required (email integration, tenant creation updates)
 
 ## Table of Contents
 
