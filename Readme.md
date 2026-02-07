@@ -132,7 +132,8 @@ saas-rbac-prototype/
 ```
 
 ---
-### **High-Level Visual **
+
+## High-Level Visual 
 
 ![rbac Prototype Diagram](https://github.com/KamoEllen/rbac-prototype/blob/main/diagram.png)
 
