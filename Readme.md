@@ -1,5 +1,11 @@
 
 **Owner:** KamoEllen
+**Repo:** [Ecommerce-Devops-Pipeline](https://github.com/KamoEllen/Ecommerce-Devops-Pipeline)
+**Status:** Completed
+
+---
+
+**Owner:** KamoEllen
 **Category:** Backend
 **Status:** Completed/ Update required (email integration and updating tenant creation)
 
