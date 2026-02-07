@@ -1,7 +1,7 @@
 
-
+**Owner:** KamoEllen
 **Category:** Backend
-**Status:** Prototype / Update required (email integration and updating tenant creation)
+**Status:** Completed/ Update required (email integration and updating tenant creation)
 
 ---
 
