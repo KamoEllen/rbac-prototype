@@ -1,7 +1,5 @@
 **Status:**  Update required (email integration, tenant creation updates)
 
-![img](https://github.com/KamoEllen/rbac-prototype/diagram.png)
-
 ## Table of Contents
 
 1. [Quick Start Guide](#quick-start-guide)
@@ -134,6 +132,10 @@ saas-rbac-prototype/
 ```
 
 ---
+### **High-Level Visual **
+
+![rbac Prototype Diagram](https://github.com/KamoEllen/rbac-prototype/blob/main/diagram.png)
+
 
 ## Database Schema
 
