@@ -1,5 +1,7 @@
 **Status:**  Update required (email integration, tenant creation updates)
 
+![img](https://github.com/KamoEllen/rbac-prototype/diagram.png)
+
 ## Table of Contents
 
 1. [Quick Start Guide](#quick-start-guide)
