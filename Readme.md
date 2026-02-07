@@ -27,6 +27,8 @@
 
 ---
 
+![img](https://github.com/KamoEllen/rbac-prototype/blob/main/diagram.png)
+
 ## **Quick Start Guide**
 
 Get the application running in ~5 minutes.
