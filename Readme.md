@@ -1,12 +1,7 @@
 
 **Owner:** KamoEllen
-**Repo:** [Ecommerce-Devops-Pipeline](https://github.com/KamoEllen/Ecommerce-Devops-Pipeline)
-**Status:** Completed
-
----
-
-**Owner:** KamoEllen
 **Category:** Backend
+**Repo:** [RBAC](https://github.com/KamoEllen/rbac-prototype)
 **Status:** Completed/ Update required (email integration and updating tenant creation)
 
 ---
