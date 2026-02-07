@@ -1,43 +1,40 @@
-<!--
+
+![RBAC System Diagram](https://github.com/KamoEllen/rbac-prototype/blob/main/diagram.png)
+
 **Owner:** KamoEllen
 **Category:** Backend
-**Repo:** [RBAC](https://github.com/KamoEllen/rbac-prototype)
-**Status:** Completed/ Update required (email integration and updating tenant creation)
+**Repo:** [RBAC Prototype](https://github.com/KamoEllen/rbac-prototype)
+**Status:** Completed / Update required (email integration, tenant creation updates)
 
 ---
--->
 
-## **Table of Contents**
+## Table of Contents
 
 1. [Quick Start Guide](#quick-start-guide)
 2. [Project Overview](#project-overview)
-3. [Architecture & Design Decisions](#architecture--design-decisions)
-4. [Technology Stack](#technology-stack)
-5. [Project Structure](#project-structure)
-6. [Setup Instructions](#setup-instructions)
-7. [Database Schema](#database-schema)
-8. [Authentication Flow](#authentication-flow)
-9. [Permission System](#permission-system)
-10. [API Documentation](#api-documentation)
-11. [Frontend Architecture](#frontend-architecture)
-12. [Trade-offs & Considerations](#trade-offs--considerations)
-13. [Development Workflow](#development-workflow)
-14. [Testing Guide](#testing-guide)
-15. [Deployment Considerations](#deployment-considerations)
+3. [Technology Stack](#technology-stack)
+4. [Project Structure](#project-structure)
+5. [Setup Instructions](#setup-instructions)
+6. [Database Schema](#database-schema)
+7. [Authentication Flow](#authentication-flow)
+8. [Permission System](#permission-system)
+9. [API Documentation](#api-documentation)
+10. [Frontend Architecture](#frontend-architecture)
+11. [Development Workflow](#development-workflow)
+12. [Testing Guide](#testing-guide)
+13. [Deployment Considerations](#deployment-considerations)
 
 ---
 
-![img](https://github.com/KamoEllen/rbac-prototype/blob/main/diagram.png)
+## Quick Start Guide
 
-## **Quick Start Guide**
-
-Get the application running in ~5 minutes.
+Run the application in ~5 minutes.
 
 ### Prerequisites
 
 * PostgreSQL 14+
 * Bun 1.0+
-* Node.js 18+ & npm (for frontend)
+* Node.js 18+ & npm
 
 ### Steps
 
@@ -94,9 +91,9 @@ bun run db:seed
 
 ---
 
-## **Project Overview**
+## Project Overview
 
-**Purpose:** Multi-tenant RBAC system for SaaS applications with fine-grained permissions.
+**Purpose:** Multi-tenant RBAC system for SaaS apps with fine-grained permissions.
 
 **Key Features:**
 
@@ -106,43 +103,11 @@ bun run db:seed
 * Module-level CRUD permissions (Vault, Financials, Reporting)
 * RESTful API with TypeScript type-safety
 
-**Business Context:** Traditional RBAC struggles in modern SaaS where tenants, teams, and dynamic permissions need flexibility. This prototype demonstrates a scalable architecture.
+**Business Context:** Traditional RBAC systems struggle in modern SaaS. This prototype demonstrates a scalable architecture with code-level traceability.
 
 ---
 
-## **Architecture & Design Decisions**
-
-### **Backend Architecture (Layered)**
-
-```mermaid
-graph TD
-A[API Layer (Routes)] --> B[Application Layer (Core)]
-B --> C[Infrastructure Layer (Database)]
-C --> D[(PostgreSQL)]
-```
-
-* API Layer: HTTP endpoints, validation, middleware
-* Application Layer: Pure business logic, auth, permissions
-* Infrastructure Layer: DB access via Drizzle ORM
-
-**Frontend Architecture (Context + Component)**
-
-```mermaid
-graph TD
-App --> AuthContext
-App --> Pages
-Pages --> Dashboard
-Dashboard --> ModuleA
-Dashboard --> ModuleB
-```
-
-**Decision:** React Context sufficient for global state; local state for components.
-
-**Trade-offs:** Slight re-render overhead; could use Zustand/React Query for larger apps.
-
----
-
-## **Technology Stack**
+## Technology Stack
 
 | Layer         | Tool / Version          | Purpose                   |
 | ------------- | ----------------------- | ------------------------- |
@@ -157,7 +122,7 @@ Dashboard --> ModuleB
 
 ---
 
-## **Project Structure**
+## Project Structure
 
 ```text
 saas-rbac-prototype/
@@ -165,7 +130,7 @@ saas-rbac-prototype/
 │   ├── src/
 │   │   ├── api/             # Routes & middleware
 │   │   ├── core/            # Auth & permission logic
-│   │   └── infrastructure/  # DB, migrations, seeds
+│   │   └── infrastructure/  # DB access, migrations, seeds
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
@@ -176,28 +141,9 @@ saas-rbac-prototype/
 
 ---
 
-## **Setup Instructions**
+## Database Schema
 
-* See **Quick Start Guide** above
-* Backend: `bun run dev`
-* Frontend: `npm run dev`
-
----
-
-## **Database Schema**
-
-### **ER Diagram**
-
-```mermaid
-erDiagram
-TENANTS ||--o{ TEAMS : contains
-TEAMS ||--o{ USERS : has
-TEAMS ||--o{ GROUPS : has
-GROUPS ||--o{ USER_GROUPS : contains
-GROUPS ||--o{ GROUP_ROLES : links_to
-ROLES ||--o{ GROUP_ROLES : linked_to
-PERMISSIONS ||--o{ ROLES : assigned_to
-```
+**ER Diagram:** 
 
 **Core Tables:** tenants, teams, users, roles, groups, user_groups, group_roles
 **Auth Tables:** sessions, passwordless_links
@@ -205,31 +151,18 @@ PERMISSIONS ||--o{ ROLES : assigned_to
 
 ---
 
-## **Authentication Flow**
+## Authentication Flow
 
-```mermaid
-sequenceDiagram
-User->>Frontend: Enter email
-Frontend->>Backend: POST /auth/login
-Backend->>DB: Create passwordless token
-Backend-->>User: Send login link
-User->>Frontend: Click link
-Frontend->>Backend: POST /auth/verify
-Backend->>DB: Validate token
-Backend->>DB: Create session
-Backend-->>User: Return JWT
-User->>Frontend: Redirect to dashboard
-```
-
-* Tokens generated via Nanoid, expire in 15 minutes
-* Single-use, stored in `passwordless_links`
+* Passwordless login using JWTs
+* Single-use tokens stored in `passwordless_links` (expires in 15 minutes)
+* Frontend receives token → API verifies → JWT returned → Dashboard access
 
 ---
 
-## **Permission System**
+## Permission System
 
-* ABAC model with role aggregation: `User → Groups → Roles → Permissions`
-* Permission format example:
+* ABAC with role aggregation: `User → Groups → Roles → Permissions`
+* Example permission format:
 
 ```json
 {
@@ -239,45 +172,36 @@ User->>Frontend: Redirect to dashboard
 }
 ```
 
-* Aggregation algorithm unions permissions across all user roles.
+* Aggregation unions permissions across all roles
 
 ---
 
-## **API Documentation (Backend)**
+## API Documentation (Backend)
 
-| Endpoint     | Method   | Description                     |
-| ------------ | -------- | ------------------------------- |
-| /auth/login  | POST     | Request passwordless link       |
-| /auth/verify | POST     | Verify token and create session |
-| /users       | GET      | List users                      |
-| /users       | POST     | Create user                     |
-| /groups      | GET      | List groups                     |
-| /roles       | GET      | List roles                      |
-| /vault       | GET/POST | Vault secrets                   |
-| /financials  | GET/POST | Financial transactions          |
-| /reporting   | GET/POST | Reports                         |
+| Endpoint     | Method   | Description                   |
+| ------------ | -------- | ----------------------------- |
+| /auth/login  | POST     | Request passwordless link     |
+| /auth/verify | POST     | Verify token & create session |
+| /users       | GET      | List users                    |
+| /users       | POST     | Create user                   |
+| /groups      | GET      | List groups                   |
+| /roles       | GET      | List roles                    |
+| /vault       | GET/POST | Vault secrets                 |
+| /financials  | GET/POST | Financial transactions        |
+| /reporting   | GET/POST | Reports                       |
 
 ---
 
-## **Frontend Architecture**
+## Frontend Architecture
 
-* React SPA with pages for login, dashboard, modules
+* React SPA with login, dashboard, module pages
 * Context API handles global auth state
 * Components: reusable UI for modules
 * Navigation: Login → Dashboard → Module → Action
 
 ---
 
-## **Trade-offs & Considerations**
-
-* Monorepo simplifies dev but larger repo size
-* Passwordless auth requires email access
-* Drizzle ORM lightweight but smaller ecosystem
-* Context API fine for prototype scale
-
----
-
-## **Development Workflow**
+## Development Workflow
 
 * `bun run dev` for backend
 * `npm run dev` for frontend
@@ -285,7 +209,7 @@ User->>Frontend: Redirect to dashboard
 
 ---
 
-## **Testing Guide**
+## Testing Guide
 
 * Jest for unit tests
 * Supertest for API integration
@@ -293,10 +217,9 @@ User->>Frontend: Redirect to dashboard
 
 ---
 
-## **Deployment Considerations**
+## Deployment Considerations
 
 * Environment variables: `DATABASE_URL`, `PORT`, `NODE_ENV`
 * Production DB: Postgres with SSL
-* Sessions: JWT in headers; can switch to HTTP-only cookies
-* Use CI/CD for migrations, tests, and deployment
-
+* Sessions: JWT in headers (can switch to HTTP-only cookies)
+* CI/CD pipelines for migrations, tests, and deployment
